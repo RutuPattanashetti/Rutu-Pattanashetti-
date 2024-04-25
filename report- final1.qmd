@@ -1,0 +1,129 @@
+---
+title: "Stolen Dreams: A Data-Driven Look at Child Marriage"
+subtitle: "Unequal Joys: A Global Map of Child Marriage"
+author: "Ruthwik Matthiga Raghavendra" 
+date: "2024-04-25"
+format:
+  html: 
+    theme: lux 
+    backgroundcolor: white;
+    toc: true
+    
+execute: 
+  echo: false
+  warning: false
+  message: false  
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(plotly)
+# Load data and prepare joins here...
+
+# libraries
+library(tidyverse)
+library(plotly)
+unicef_indicator_1 <- read_csv("unicef_indicator_1.csv")
+unicef_metadata <- read_csv("unicef_metadata.csv")
+
+unicef_join <- full_join(unicef_indicator_1,unicef_metadata, by = join_by(country , time_period == year))
+unicef_join <- full_join(unicef_indicator_1,unicef_metadata , by = c("country","time_period"= "year"))
+
+unicef_join <- unicef_indicator_1 %>%
+  full_join(unicef_metadata,by = c("country","time_period"= "year"))
+```
+
+The issue of teenage marriage remains a poignant topic that crosses cultural, economic, and political boundaries. This report delves into the global landscape of teenage marriages, with a specific focus on boys, uncovering patterns and trends that prevail across various regions. Utilizing comprehensive data collected over eight years, we aim to highlight the countries with significant occurrences of teenage marriages, examine the correlation with economic indicators such as GDP per capita, and analyze the fluctuating trends over time. Each visualization in this report is designed to provide insights that can inform policymakers, activists, and researchers dedicated to addressing and mitigating this profound issue.
+
+## Unequal Joys: A Global Map of Teenage Marriage
+
+```{r bar-chart, fig.cap="The world map paints a sobering picture. Each country is colored based on the prevalence of child marriage, revealing a geographically uneven distribution. Darker shades highlight regions where a higher percentage of children are married before reaching adulthood. This visualization serves as a stark reminder of the widespread nature of this issue and the urgent need for global action."}
+map_world <- map_data("world")
+
+# map 1
+map_data_join <- full_join(unicef_join,map_world , by = c ("country" = "region"))
+
+# Plotting the map
+ggplot(data = map_data_join, aes(x = long, y = lat, group = group, fill = obs_value)) +
+  geom_polygon() +
+  scale_fill_viridis_c(option = "C") +  # Color scale
+  labs(title = "Global Distribution of Teenage Marriage", fill = "Indicator Value") +
+  theme_minimal()
+
+```
+
+
+## Top 10 Countries by Maximum Teenage
+
+```{r Filter data for the timeframe 2012 to 2020, fig.cap="This bar chart focuses on the top 10 countries with the highest recorded rates of teenage boys married or in union from 2012 to 2020. Highlighting these countries allows us to pinpoint where targeted interventions and policies might be most needed to combat early marriages."}
+
+ 
+ # Filter data for the timeframe 2012 to 2020
+ filtered_data <- unicef_join %>%
+   filter(time_period >= 2012, time_period <= 2020)
+ 
+ # Summarize to find the maximum observed value for each country
+ top_countries <- filtered_data %>%
+   group_by(country) %>%
+   summarise(max_value = max(obs_value, na.rm = TRUE)) %>%
+   arrange(desc(max_value)) %>%
+   slice_max(n = 10, order_by = max_value)
+ 
+ # Plotting the results
+ ggplot(top_countries, aes(x = reorder(country, max_value), y = max_value, fill = country)) +
+   geom_col() +
+   labs(title = "Top 10 Countries by Maximum Teenage Boys Marriage Raye (2012-2020)",
+        x = "Country",
+        y = "Maximum % of Teenage Boys Marriage") +
+   theme_minimal() +
+   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+ 
+```
+
+
+ 
+## Teenage Boys Marriage Rates Distribution
+ 
+```{r bar chart, fig.cap="The distribution of teenage marriage rates is shown through a bar chart, which categorizes the rates into bins of 2% increments. This visualization helps in understanding the commonality of specific rate ranges and identifies the skewness or uniformity of marriage rates across the sampled countries."}
+#bar chart
+ 
+ marriage_bar_chart <- unicef_join %>%
+   mutate(value_bin = cut(obs_value, breaks = seq(0, max(ceiling(obs_value)), by = 2), include.lowest = TRUE)) %>%
+   count(value_bin) %>%
+   ggplot(aes(x = value_bin, y = n, fill = value_bin)) +
+   geom_col(show.legend = FALSE) +  # Hide legend for clarity
+   scale_x_discrete(drop = FALSE) +  # Ensure all bins are shown even if some are empty
+   theme_minimal() +
+   labs(title = "Teenage Boys Marriage Rates Distribution",
+        x = "Teenage Marriage Rate (%)",
+        y = "Number of Countries") +
+   theme(axis.text.x = element_text(angle = 90, hjust = 1))  # Rotate x labels for readability
+ ggplotly(marriage_bar_chart)
+ 
+ 
+```
+
+
+
+## Trends in Teenage Boys Marriage Rates
+
+```{r Trends in chart, fig.cap="Finally, the trend line chart provides a temporal view, showcasing how the average teenage marriage rates have evolved over the years. This plot is crucial for identifying whether efforts to reduce teenage marriages are having a measurable impact over time."}
+
+#Trends in chart
+ trend_chart <- ggplot(unicef_join, aes(x = time_period, y = obs_value)) +
+   geom_line(stat = "summary", fun.y = mean) +
+   theme_minimal() +
+   labs(title = "Trends in Teenage Boys Marriage Rates",
+        x = "Time Period",
+        y = "Average Teenage Marriage Rate (%)")
+ ggplotly(trend_chart)
+ 
+```
+
+
+
+## Conclusion
+Each visualization in this report is crafted to build upon the last, providing a comprehensive understanding of teenage marriages globally. By highlighting specific countries, trends, and economic correlations, we aim to equip stakeholders with the information necessary to craft effective strategies to reduce teenage marriages and support affected individuals. This report underscores the importance of continuous monitoring and concerted efforts to address this pressing issue.
+
+
+
+
